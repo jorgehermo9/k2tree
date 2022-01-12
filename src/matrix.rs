@@ -31,10 +31,14 @@ pub mod matrix{
 				for _ in 0..columns{
 					match iterator.next(){
 						Some(element) => row.push(element),
-						None => panic!("Iterator's length must match rows * columns")
+						None => panic!("Iterator has less elements than rows * columns")
 					}
 				}
 				inner.push(row);
+			}
+			//Test if iterator is empty after 
+			if let Some(_) = iterator.next(){
+				panic!("Iterator has more elements than rows * columns")
 			}
 			Matrix{
 				inner,
@@ -74,8 +78,8 @@ pub mod matrix{
 			if x.is_empty(){panic!("x range must not be empty")}
 			else if y.is_empty(){panic!("y range must not be empty")}
 
-			if *x.end() > self.columns{panic!("x range overflows matrix")}
-			else if *y.end() > self.rows{panic!("y range overflows matrix")}
+			if *x.end() > self.columns-1{panic!("x range overflows matrix")}
+			else if *y.end() > self.rows-1{panic!("y range overflows matrix")}
 
 			let mut inner = Vec::new();
 
@@ -90,13 +94,13 @@ pub mod matrix{
 				inner,
 				rows:x.count(),
 				columns:y.count()
-
 			}
 		}
 
 	}
 	
 	impl <E> Matrix<E> where E:Clone+Display{
+		//Implement Display trait instead of print
 		pub fn print(&self){
 			for i in 0..self.rows{
 				for j in 0..self.columns-1{
@@ -176,7 +180,7 @@ mod tests {
 		let expected = vec![1,2,3,4,5,6,7,8,9];
 		let matrix = Matrix::from_iterator(3,3,expected.clone().into_iter());
 		matrix.print();
-		
+
 		let submatrix = matrix.submatrix(0..=1,1..=2);
 		println!("");
 		submatrix.print()
