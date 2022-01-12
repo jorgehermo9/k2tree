@@ -1,5 +1,6 @@
 pub mod matrix{
-	
+	use std::ops::RangeInclusive;
+	use core::fmt::Display;
 	pub struct Matrix<E> where E:Clone{
 		inner:Vec<Vec<E>>,
 		rows:usize,
@@ -41,6 +42,16 @@ pub mod matrix{
 				columns
 			}
 		}
+		pub fn to_iterator(&self)->impl Iterator<Item=&E>{
+			let mut inner_flat = Vec::new();
+			for i in 0..self.rows{
+				let row = &self.inner[i];
+				for element in row{
+					inner_flat.push(element);
+				}
+			}
+			inner_flat.into_iter()
+		}
 		pub fn get(&self,i:usize,j:usize) ->&E{
 			&self.inner[i][j]
 		}
@@ -58,6 +69,41 @@ pub mod matrix{
 		}
 		pub fn get_inner_mut(&mut self)-> &mut Vec<Vec<E>>{
 			&mut self.inner
+		}
+		pub fn submatrix(&self,x:RangeInclusive<usize>,y:RangeInclusive<usize>)->Matrix<&E>{
+			if x.is_empty(){panic!("x range must not be empty")}
+			else if y.is_empty(){panic!("y range must not be empty")}
+
+			if *x.end() > self.columns{panic!("x range overflows matrix")}
+			else if *y.end() > self.rows{panic!("y range overflows matrix")}
+
+			let mut inner = Vec::new();
+
+			for i in y.clone(){
+				let mut row = Vec::new();
+				for j in x.clone(){
+					row.push(&self.inner[i][j])
+				}
+				inner.push(row)
+			}
+			Matrix{
+				inner,
+				rows:x.count(),
+				columns:y.count()
+
+			}
+		}
+
+	}
+	
+	impl <E> Matrix<E> where E:Clone+Display{
+		pub fn print(&self){
+			for i in 0..self.rows{
+				for j in 0..self.columns-1{
+					print!("{} ",self.inner[i][j]);
+				}
+				print!("{}\n",self.inner[i][self.columns-1]);
+			}
 		}
 	}
 	
@@ -112,4 +158,28 @@ mod tests {
 			}
 		}
 	}
+	#[test]
+	fn to_iterator_test(){
+		let expected = vec![1,2,3,4];
+		let matrix = Matrix::from_iterator(2,2,expected.clone().into_iter());
+		
+		assert_eq!(matrix.get_columns(),2);
+		assert_eq!(matrix.get_rows(),2);
+
+		let flat_matrix:Vec<&i32> = matrix.to_iterator().collect();
+
+		assert_eq!(flat_matrix,expected.iter().collect::<Vec<&i32>>());
+	}
+
+	#[test]
+	fn submatrix_test(){
+		let expected = vec![1,2,3,4,5,6,7,8,9];
+		let matrix = Matrix::from_iterator(3,3,expected.clone().into_iter());
+		matrix.print();
+		
+		let submatrix = matrix.submatrix(0..=1,1..=2);
+		println!("");
+		submatrix.print()
+	}
+	
 }
