@@ -104,9 +104,9 @@ pub mod matrix{
 		pub fn print(&self){
 			for i in 0..self.rows{
 				for j in 0..self.columns-1{
-					print!("{} ",self.inner[i][j]);
+					print!("{:>3} ",self.inner[i][j]);
 				}
-				print!("{}\n",self.inner[i][self.columns-1]);
+				print!("{:>3}\n",self.inner[i][self.columns-1]);
 			}
 		}
 	}
@@ -179,11 +179,33 @@ mod tests {
 	fn submatrix_test(){
 		let expected = vec![1,2,3,4,5,6,7,8,9];
 		let matrix = Matrix::from_iterator(3,3,expected.clone().into_iter());
-		matrix.print();
+		//matrix.print();
 
 		let submatrix = matrix.submatrix(0..=1,1..=2);
-		println!("");
-		submatrix.print()
+		//println!("");
+		//submatrix.print()
 	}
+
+	#[test]
+	fn submatrix_sum(){
+		let expected = vec![1,2,3,4,5,6,7,8,9];
+		let matrix = Matrix::from_iterator(3,3,expected.clone().into_iter());
+
+		let submatrix = matrix.submatrix(0..=1,0..=1);
+
+		let sum = submatrix.to_iterator().fold(0, |acc,&elem| acc + elem);
+
+		assert_eq!(12,sum);
+	}
+
+	#[test]
+	fn submatrix_sum_big(){
+		let size = 1000;
+		let matrix = Matrix::from_iterator(size,size,0..size*size);
+
+		let sum = matrix.to_iterator().fold(0, |acc,elem|acc+elem);
+		assert_eq!(sum,499999500000);
+	}
+
 	
 }
