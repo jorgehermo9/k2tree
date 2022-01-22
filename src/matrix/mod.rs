@@ -15,7 +15,7 @@ pub struct Matrix<T>{
 
 impl <T> Matrix<T>{
 	pub fn new(rows:usize,columns:usize) -> Matrix<T> where T:Default{
-		Matrix::from_iter(rows,columns,(0..rows*columns).map(|_| T::default()))
+		Matrix::from_iter(rows,columns,(0..).map(|_| T::default()))
 	}
 	//if iterator has more elements than needed to fill the matrix, this method wont fail
 	pub fn from_iter(rows:usize,columns:usize,input:impl IntoIterator<Item=T>) -> Self{
