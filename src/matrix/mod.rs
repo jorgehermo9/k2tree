@@ -1,8 +1,10 @@
 
-mod iter;
+
 
 use std::ops::RangeInclusive;
-use core::fmt::Display;
+
+pub mod iter;
+pub mod display;
 pub struct Matrix<T>{
 	inner:Vec<T>,
 	rows:usize,
@@ -79,19 +81,7 @@ impl <T> Matrix<T>{
 
 }
 
-impl <E> Matrix<E> where E:Clone+Display{
-	//Implement Display trait instead of print
-	pub fn print(&self){
-		for i in 0..self.rows{
-			for j in 0..self.columns-1{
-				print!("{:>3} ",self.get(i,j));
-			}
-			print!("{:>3}\n",self.get(i,self.columns-1));
-		}
-	}
-}
-
-impl <E> Clone for Matrix<E> where E:Clone{
+impl <T> Clone for Matrix<T> where T: Clone{
 	fn clone(&self) -> Self{
 		return Matrix{
 			inner:self.inner.clone(),
@@ -160,7 +150,7 @@ mod tests {
 		let matrix = Matrix::from_iter(3,3,expected.clone());
 
 		let submatrix = matrix.submatrix(0..=1,1..=2);
-		submatrix.print()
+		println!("{}",submatrix);
 	}
 
 	#[test]
@@ -189,15 +179,10 @@ mod tests {
 		let size = 3;
 		let matrix = Matrix::from_iter(size,size,0..size*size);
 
-		for element in matrix{
+		for element in &matrix{
 			println!("{}", element)
 		}
-	}
-
-	#[test]
-	fn fail(){
-		let size =3;
-		let matrix = Matrix::from_iter(size,size,0..10);
+		println!("{}",matrix)
 	}
 	
 }
