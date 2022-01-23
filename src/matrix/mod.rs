@@ -12,7 +12,6 @@ pub struct Matrix<T>{
 }
 
 
-
 impl <T> Matrix<T>{
 	pub fn new(rows:usize,columns:usize) -> Matrix<T> where T:Default{
 		Matrix::from_iter(rows,columns,(0..).map(|_| T::default()))
@@ -58,7 +57,7 @@ impl <T> Matrix<T>{
 	pub fn get_inner_mut(&mut self)-> &mut Vec<T>{
 		&mut self.inner
 	}
-	pub fn submatrix(&self,x:RangeInclusive<usize>,y:RangeInclusive<usize>)->Matrix<&T>{
+	pub fn submatrix(&self,x:RangeInclusive<usize>,y:RangeInclusive<usize>)->Matrix<T> where T:Clone{
 		if x.is_empty(){panic!("x range must not be empty")}
 		else if y.is_empty(){panic!("y range must not be empty")}
 
@@ -69,7 +68,7 @@ impl <T> Matrix<T>{
 
 		for i in y.clone(){
 			for j in x.clone(){
-				inner.push(self.get(i,j));
+				inner.push((*self.get(i,j)).clone());
 			}
 		}
 		Matrix{
@@ -80,6 +79,7 @@ impl <T> Matrix<T>{
 	}
 
 }
+
 
 impl <T> Clone for Matrix<T> where T: Clone{
 	fn clone(&self) -> Self{
@@ -160,7 +160,7 @@ mod tests {
 
 		let submatrix = matrix.submatrix(0..=1,0..=1);
 
-		let sum = submatrix.into_iter().fold(0, |acc,&elem| acc + elem);
+		let sum = submatrix.into_iter().fold(0, |acc,elem| acc + elem);
 
 		assert_eq!(12,sum);
 	}

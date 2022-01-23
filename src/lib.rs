@@ -1,5 +1,6 @@
 
 pub mod matrix;
+pub mod k2tree;
 
 #[cfg(test)]
 mod tests {
