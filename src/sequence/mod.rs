@@ -31,6 +31,7 @@ impl <T> Sequence<T> where T:Eq{
 	//del array data, guardar el número de ocurrencias anteriores del target
 	//Pero esto tendría complejidad espacial O(n) 
 	pub fn rank(&self,i:usize)->Option<usize>{
+		//O(n) worst case. as better compression, less operations
 		if i >= self.data.len(){return None};
 		match self.target_index.iter().position(|&(index,_)| index > i){
 			None=>Some(self.target_index.last().unwrap().1),
