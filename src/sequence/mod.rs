@@ -8,7 +8,7 @@ pub struct Sequence<T>{
 	//space worst case: 2*O(n)
 	data: Vec<T>,
 	target:T,
-	target_index:Vec<(usize,usize)>//index,occurences
+	target_index:Vec<(usize,usize)>//index,rank(index)
 }
 
 impl <T> Sequence<T> where T:Eq{

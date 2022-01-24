@@ -1,11 +1,11 @@
 
-pub mod matrix;
-pub mod k2tree;
-pub mod sequence;
+mod matrix;
+mod k2tree;
+mod sequence;
 
-pub use k2tree::K2tree;
-pub use matrix::Matrix;
-pub use sequence::Sequence;
+pub use crate::k2tree::K2tree;
+pub use crate::matrix::Matrix;
+pub use crate::sequence::Sequence;
 #[cfg(test)]
 mod tests {
     #[test]
