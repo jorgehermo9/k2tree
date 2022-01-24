@@ -1,7 +1,11 @@
 
 pub mod matrix;
 pub mod k2tree;
+pub mod sequence;
 
+pub use k2tree::K2tree;
+pub use matrix::Matrix;
+pub use sequence::Sequence;
 #[cfg(test)]
 mod tests {
     #[test]

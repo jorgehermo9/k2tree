@@ -4,14 +4,14 @@ use std::{collections::VecDeque, fmt::Debug};
 use core::fmt::Display;
 
 use crate::matrix::Matrix;
-
+use crate::sequence::Sequence;
 #[derive(Debug)]
 
 pub struct K2tree<T> where T:Clone{
 	rows:usize,
 	columns:usize,
 	k:usize,
-	nodes:Vec<Option<T>>,
+	nodes:Sequence<Option<T>>,
 	leaf:Vec<T>
 }
 
@@ -21,7 +21,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 			rows: matrix.get_rows(),
 			columns: matrix.get_columns(),
 			k,
-			nodes:Vec::new(),
+			nodes:Sequence::new(Vec::new(),None),
 			leaf:Vec::new(),
 		};
 		tree.build(matrix);
@@ -60,19 +60,6 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 		}
 		
 	}
-	pub fn select(&self,value:&Option<T>,pos:usize)->usize{
-		self.nodes.iter().take(pos+1).fold(0,
-			|acc,item|
-			{
-				if item == value{
-					acc+1
-				}else{
-					acc
-				}
-			}
-		)
-
-	}
 	pub fn get(&self,i:usize,j:usize)-> &T{
 
 		assert!(i<self.get_rows() && j<self.get_columns(),
@@ -100,7 +87,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 			match self.nodes.get(pos).unwrap(){
 				None => {
 					l+=1;
-					previous = self.select(&None,pos);
+					previous = *self.nodes.rank(pos).unwrap();
 					virtual_x = virtual_x % elems_c;
 					virtual_y = virtual_y % elems_c;
 					continue
@@ -110,7 +97,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 		}
 		
 	}
-	pub fn get_nodes(&self)->&Vec<Option<T>>{
+	pub fn get_nodes(&self)->&Sequence<Option<T>>{
 		&self.nodes
 	}
 	pub fn get_leaf(&self)->&Vec<T>{
@@ -133,22 +120,27 @@ mod tests {
 	use super::K2tree;
 	#[test]
     fn test_works() {
-		let size = 16;
+		let size = 32;
         //let mut matrix = Matrix::from_iter(size,size,0..size*size);
-		let mut matrix:Matrix<i32> = Matrix::new(size,size);
-		matrix.set(0, 2, 1);
-		matrix.set(0, 3, 2);
-		matrix.set(1, 2, 3);
-		matrix.set(1, 3, 4);
-		matrix.set(3,4,5);
-		matrix.set(7,2,6);
-		matrix.set(7,7,2);
+		let mut matrix:Matrix<usize> = Matrix::from_iter(size,size,
+			(0..size*size).map(|item| if item%8 ==0 || item%8 == 1 {1}else{0}));
+
+		//let mut matrix:Matrix<usize> = Matrix::new(size,size);
+		// matrix.set(0, 2, 1);
+		// matrix.set(0, 3, 2);
+		// matrix.set(1, 2, 3);
+		// matrix.set(1, 3, 4);
+		// matrix.set(3,4,5);
+		// matrix.set(7,2,6);
+		// matrix.set(7,7,2);
 		println!("{}", matrix);
 		let k2tree = K2tree::new(matrix, 2);
 		println!("{:?}",k2tree.get_nodes());
-		println!("{:?}",k2tree.get_leaf());
-		println!("{}",k2tree.get(0, 0));
-		let size_nodes = k2tree.get_nodes().len() * std::mem::size_of::<Option<i32>>();
+		//println!("{:?}",k2tree.get_leaf());
+		println!("{}",k2tree.get(1, 2));
+
+		let mut size_nodes = k2tree.get_nodes().len() * std::mem::size_of::<Option<i32>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
 		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<i32>();
 		let size_static = std::mem::size_of_val(&k2tree);
 		let total_size = size_static+size_nodes+size_leaves;
@@ -158,9 +150,4 @@ mod tests {
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
 	}
 
-	#[test]
-	fn test_matrix(){
-		let matrix:Matrix<i32> = Matrix::new(2,2);
-		matrix.get_columns();
-	}
 }
