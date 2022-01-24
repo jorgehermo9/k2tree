@@ -125,7 +125,7 @@ mod tests {
 		//let mut matrix:Matrix<usize> = Matrix::from_iter(size,size,
 		//	(0..size*size).map(|item| if item%16 ==0 ||item%16==1 {1} else{0}));
 
-		let mut matrix:Matrix<usize> = Matrix::new(size,size);
+		let mut matrix:Matrix<usize>  = Matrix::new(size,size);
 		matrix.set(0, 2, 1);
 		matrix.set(0,3,1);
 		// matrix.set(0, 3, 2);
