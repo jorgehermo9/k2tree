@@ -87,7 +87,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 			match self.nodes.get(pos).unwrap(){
 				None => {
 					l+=1;
-					previous = *self.nodes.rank(pos).unwrap();
+					previous = self.nodes.rank(pos).unwrap();
 					virtual_x = virtual_x % elems_c;
 					virtual_y = virtual_y % elems_c;
 					continue
@@ -120,13 +120,14 @@ mod tests {
 	use super::K2tree;
 	#[test]
     fn test_works() {
-		let size = 32;
+		let size = 8;
         //let mut matrix = Matrix::from_iter(size,size,0..size*size);
-		let mut matrix:Matrix<usize> = Matrix::from_iter(size,size,
-			(0..size*size).map(|item| if item%8 ==0 || item%8 == 1 {1}else{0}));
+		//let mut matrix:Matrix<usize> = Matrix::from_iter(size,size,
+		//	(0..size*size).map(|item| if item%16 ==0 ||item%16==1 {1} else{0}));
 
-		//let mut matrix:Matrix<usize> = Matrix::new(size,size);
-		// matrix.set(0, 2, 1);
+		let mut matrix:Matrix<usize> = Matrix::new(size,size);
+		matrix.set(0, 2, 1);
+		matrix.set(0,3,1);
 		// matrix.set(0, 3, 2);
 		// matrix.set(1, 2, 3);
 		// matrix.set(1, 3, 4);
@@ -137,14 +138,14 @@ mod tests {
 		let k2tree = K2tree::new(matrix, 2);
 		println!("{:?}",k2tree.get_nodes());
 		//println!("{:?}",k2tree.get_leaf());
-		println!("{}",k2tree.get(1, 2));
+		println!("{}",k2tree.get(0, 7));
 
-		let mut size_nodes = k2tree.get_nodes().len() * std::mem::size_of::<Option<i32>>();
-		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
-		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<i32>();
+		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<usize>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<(usize,usize)>();
+		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<usize>();
 		let size_static = std::mem::size_of_val(&k2tree);
 		let total_size = size_static+size_nodes+size_leaves;
-		let raw_size = size*size *std::mem::size_of::<i32>();
+		let raw_size = size*size *std::mem::size_of::<usize>();
 		println!("dynamic size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
 		println!("raw size (bytes): {}",raw_size);
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
