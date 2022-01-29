@@ -8,7 +8,7 @@ pub struct Sequence<T>{
 	//space worst case: 2*O(n)
 	data: Vec<T>,
 	target:T,
-	target_index:Vec<usize>//index,rank(index)
+	target_index:Vec<usize>
 }
 
 impl <T> Sequence<T> where T:Eq{
@@ -34,7 +34,7 @@ impl <T> Sequence<T> where T:Eq{
 	}
 	pub fn select(&self,j:usize)->Option<usize>{
 		//O(1)
-		self.target_index.get(j).copied()
+		self.target_index.get(j-1).copied()
 	}
 	pub fn push(&mut self,item:T){
 		if item == self.target {
@@ -69,6 +69,8 @@ mod tests{
 	fn it_works(){
 		let vec = vec![None,None,Some(1),Some(2),None];
 		let seq = Sequence::new(vec,None);
-		println!("{:?}",seq)
+		assert_eq!(seq.rank(2).unwrap(),2);
+		assert_eq!(seq.select(2).unwrap(),1);
+
 	}
 }

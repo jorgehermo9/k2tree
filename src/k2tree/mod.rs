@@ -10,6 +10,8 @@ use crate::sequence::Sequence;
 pub struct K2tree<T> where T:Clone{
 	rows:usize,
 	columns:usize,
+	virtual_rows:usize,
+	virtual_cols:usize,
 	k:usize,
 	nodes:Sequence<Option<T>>,
 	leaf:Vec<T>
@@ -23,14 +25,16 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 	pub fn new(matrix:Matrix<T>, k:usize) -> K2tree<T> {
 		let rows = matrix.get_rows();
 		let columns = matrix.get_columns();
+		let size = std::cmp::max(next_pow(k,rows),next_pow(k,columns));
 		let mut tree = K2tree {
 			rows,
 			columns,
+			virtual_rows:size,
+			virtual_cols:size,
 			k,
 			nodes:Sequence::new(Vec::new(),None),
 			leaf:Vec::new(),
 		};
-		let size = std::cmp::max(next_pow(k,rows),next_pow(k,columns));
 		tree.build(matrix.expand(size,size));
 		return tree;
 	}
@@ -43,7 +47,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 			let mut ranges = Vec::new();
 			let elem_c = current.get_columns()/self.k;
 			let elem_r = current.get_rows()/self.k;
-	
+			
 			for i in 0..self.k{
 				for j in 0..self.k{
 					ranges.push((i*elem_r..=(i+1)*elem_r-1,j*elem_c..=(j+1)*elem_c-1));
@@ -70,7 +74,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 	pub fn get(&self,i:usize,j:usize)-> Option<&T>{
 
 		assert!(i<self.get_rows() && j<self.get_columns(),
-		"position overflows matrix");
+		"position overflows k2tree");
 		
 		let mut l =1;
 		let mut previous = 0;
@@ -80,16 +84,17 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 
 		loop{
 			
-			let elems_c = self.get_columns()/self.k.pow(l);
-			let elems_r = self.get_rows()/self.k.pow(l);
+			//elems_c and elems_r will always be the same
+			let elems_c = self.virtual_cols/self.k.pow(l);
+			let elems_r = self.virtual_rows/self.k.pow(l);
 			let x_node = virtual_x/elems_c;
 			let y_node =virtual_y/elems_r;
 			
 			let pos = previous * self.k.pow(2) + y_node * self.k + x_node;
-			println!("previous: {},x_node:{},y_node:{},pos:{}",previous,x_node,y_node,pos);
+			//println!("previous: {},x_node:{},y_node:{},pos:{},elemns:{}",previous,x_node,y_node,pos,elems_c);
 			
 			if pos >= self.nodes.len(){
-				println!("final pos: {}",pos - self.nodes.len());
+			//	println!("final pos: {}",pos - self.nodes.len());
 				return self.leaf.get(pos-self.nodes.len())
 			}
 			match self.nodes.get(pos).unwrap(){
@@ -149,7 +154,7 @@ mod tests {
 	#[test]
 	fn test_csv(){
 
-		let mut reader = csv::Reader::from_path("/home/jorge/datasets/test_lung_s3.csv").unwrap();
+		let mut reader = csv::Reader::from_path("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc").unwrap();
 		let mut features = Vec::new();
 
 		for feature in reader.headers().unwrap(){
@@ -166,6 +171,7 @@ mod tests {
 		let n_features = features.len();
 		let n_entities = entities.len()/n_features;
 		let matrix = Matrix::from_iter(n_entities,n_features,entities.into_iter());
+		
 		let k2tree = K2tree::new(matrix, 2);
 
 		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<String>>();
@@ -177,7 +183,6 @@ mod tests {
 		println!("K2tree size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
 		println!("raw size (bytes): {}",raw_size);
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
-
 		
 	}
 }
