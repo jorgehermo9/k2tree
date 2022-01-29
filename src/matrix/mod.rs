@@ -36,8 +36,8 @@ impl <T> Matrix<T>{
 	pub fn iter_mut<'a>(&'a mut self) ->std::slice::IterMut<'a,T>{
 		self.into_iter()
 	}
-	pub fn get(&self,i:usize,j:usize) ->&T{
-		&self.inner[i*self.columns+j]
+	pub fn get(&self,i:usize,j:usize) ->Option<&T>{
+		self.inner.get(i*self.columns+j)
 	}
 	pub fn get_mut(&mut self,i:usize,j:usize) ->&mut T{
 		&mut self.inner[i*self.columns+j]
@@ -57,7 +57,8 @@ impl <T> Matrix<T>{
 	pub fn get_inner_mut(&mut self)-> &mut Vec<T>{
 		&mut self.inner
 	}
-	pub fn submatrix(&self,x:RangeInclusive<usize>,y:RangeInclusive<usize>)->Matrix<T> where T:Clone{
+	
+	pub fn submatrix(&self,y:RangeInclusive<usize>,x:RangeInclusive<usize>)->Matrix<T> where T:Clone{
 		if x.is_empty(){panic!("x range must not be empty")}
 		else if y.is_empty(){panic!("y range must not be empty")}
 
@@ -68,13 +69,37 @@ impl <T> Matrix<T>{
 
 		for i in y.clone(){
 			for j in x.clone(){
-				inner.push((*self.get(i,j)).clone());
+				inner.push((self.get(i,j).unwrap()).clone());
 			}
 		}
 		Matrix{
 			inner,
 			rows:x.count(),
 			columns:y.count()
+		}
+	}
+	pub fn expand(self,rows:usize,columns:usize)-> Self where T: Default + Clone{
+		//TODO: Implement without cloning
+		if rows <self.rows || columns <self.columns{
+			panic!("Can't squeeze below current size");
+		};
+		if rows == self.rows && columns == self.columns{
+			return self;
+		}
+		let mut new = Vec::new();
+		for i in 0..rows{
+			for j in 0..columns{
+				if j>= self.columns || i>= self.rows{
+					new.push(T::default());
+				}else{
+					new.push(self.get(i,j).unwrap().clone());
+				}
+			}
+		}
+		Matrix{
+			inner:new,
+			rows,
+			columns
 		}
 	}
 
@@ -111,7 +136,7 @@ mod tests {
 
 		for i in 0..2{
 			for j in 0..2{
-				assert_eq!(expected[i][j],*matrix.get(i, j));
+				assert_eq!(expected[i][j],*matrix.get(i, j).unwrap());
 			}
 		}
     }
@@ -127,7 +152,7 @@ mod tests {
 
 		for i in 0..2{
 			for j in 0..2{
-				assert_eq!(expected[i][j],*matrix.get(i,j))
+				assert_eq!(expected[i][j],*matrix.get(i,j).unwrap())
 			}
 		}
 	}

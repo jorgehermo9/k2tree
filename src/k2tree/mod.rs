@@ -15,16 +15,23 @@ pub struct K2tree<T> where T:Clone{
 	leaf:Vec<T>
 }
 
-impl <T> K2tree<T> where T:Display + Eq + Clone{
+fn next_pow(base:usize,n:usize)->usize{
+	base.pow(f64::from(n as u32).log2().ceil() as u32)
+}
+impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
+	
 	pub fn new(matrix:Matrix<T>, k:usize) -> K2tree<T> {
+		let rows = matrix.get_rows();
+		let columns = matrix.get_columns();
 		let mut tree = K2tree {
-			rows: matrix.get_rows(),
-			columns: matrix.get_columns(),
+			rows,
+			columns,
 			k,
 			nodes:Sequence::new(Vec::new(),None),
 			leaf:Vec::new(),
 		};
-		tree.build(matrix);
+		let size = std::cmp::max(next_pow(k,rows),next_pow(k,columns));
+		tree.build(matrix.expand(size,size));
 		return tree;
 	}
 	pub fn build(&mut self,matrix:Matrix<T>){
@@ -39,16 +46,16 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 	
 			for i in 0..self.k{
 				for j in 0..self.k{
-					ranges.push((j*elem_c..=(j+1)*elem_c-1,i*elem_r..=(i+1)*elem_r-1));
+					ranges.push((i*elem_r..=(i+1)*elem_r-1,j*elem_c..=(j+1)*elem_c-1));
 				}
 			}
 			for (x,y) in ranges{
 				let submatrix = current.submatrix(x, y);
 				if submatrix.get_inner().len() == 1{
-					self.leaf.push(submatrix.get(0,0).clone());
+					self.leaf.push(submatrix.get(0,0).unwrap().clone());
 					continue;
 				}
-				let first = submatrix.get(0,0);
+				let first = submatrix.get(0,0).unwrap();
 				let all_eq = submatrix.iter().all(|item| item == first);
 				if all_eq{
 					self.nodes.push(Some(first.clone()));
@@ -60,7 +67,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 		}
 		
 	}
-	pub fn get(&self,i:usize,j:usize)-> &T{
+	pub fn get(&self,i:usize,j:usize)-> Option<&T>{
 
 		assert!(i<self.get_rows() && j<self.get_columns(),
 		"position overflows matrix");
@@ -82,17 +89,17 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 			println!("previous: {},x_node:{},y_node:{},pos:{}",previous,x_node,y_node,pos);
 			
 			if pos >= self.nodes.len(){
-				return &self.leaf[pos-self.nodes.len()]
+				println!("final pos: {}",pos - self.nodes.len());
+				return self.leaf.get(pos-self.nodes.len())
 			}
 			match self.nodes.get(pos).unwrap(){
 				None => {
 					l+=1;
 					previous = self.nodes.rank(pos).unwrap();
 					virtual_x = virtual_x % elems_c;
-					virtual_y = virtual_y % elems_c;
-					continue
+					virtual_y = virtual_y % elems_r;
 				},
-				Some(n) => return n
+				Some(n) => return Some(n)
 			}
 		}
 		
@@ -118,37 +125,59 @@ impl <T> K2tree<T> where T:Display + Eq + Clone{
 mod tests {
 	use crate::matrix::Matrix;
 	use super::K2tree;
+	use rand::Rng;
 	#[test]
-    fn test_works() {
-		let size = 8;
-        //let mut matrix = Matrix::from_iter(size,size,0..size*size);
-		//let mut matrix:Matrix<usize> = Matrix::from_iter(size,size,
-		//	(0..size*size).map(|item| if item%16 ==0 ||item%16==1 {1} else{0}));
+    fn test_compression() {
+		let size = 512;
+		let mut rng = rand::thread_rng();
+		let matrix:Matrix<usize> = Matrix::from_iter(size,size,
+			(0..size*size).map(|_|rng.gen::<usize>() % 2));
 
-		let mut matrix:Matrix<usize>  = Matrix::new(size,size);
-		matrix.set(0, 2, 1);
-		matrix.set(0,3,1);
-		// matrix.set(0, 3, 2);
-		// matrix.set(1, 2, 3);
-		// matrix.set(1, 3, 4);
-		// matrix.set(3,4,5);
-		// matrix.set(7,2,6);
-		// matrix.set(7,7,2);
-		println!("{}", matrix);
 		let k2tree = K2tree::new(matrix, 2);
-		println!("{:?}",k2tree.get_nodes());
-		//println!("{:?}",k2tree.get_leaf());
-		println!("{}",k2tree.get(0, 7));
 
 		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<usize>>();
-		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<(usize,usize)>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
 		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<usize>();
-		let size_static = std::mem::size_of_val(&k2tree);
+		let size_static = std::mem::size_of::<K2tree<usize>>();
 		let total_size = size_static+size_nodes+size_leaves;
 		let raw_size = size*size *std::mem::size_of::<usize>();
-		println!("dynamic size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
+		println!("K2tree size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
 		println!("raw size (bytes): {}",raw_size);
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
 	}
 
+	#[test]
+	fn test_csv(){
+
+		let mut reader = csv::Reader::from_path("/home/jorge/datasets/test_lung_s3.csv").unwrap();
+		let mut features = Vec::new();
+
+		for feature in reader.headers().unwrap(){
+			features.push(String::from(feature));
+		}
+		let mut entities = Vec::new();
+
+		for result in reader.records(){
+			let record = result.unwrap();
+			for value in record.into_iter(){
+				entities.push(String::from(value));
+			}
+		}
+		let n_features = features.len();
+		let n_entities = entities.len()/n_features;
+		let matrix = Matrix::from_iter(n_entities,n_features,entities.into_iter());
+		let k2tree = K2tree::new(matrix, 2);
+
+		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<String>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<(usize,usize)>();
+		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<String>();
+		let size_static = std::mem::size_of::<K2tree<String>>();
+		let total_size = size_static+size_nodes+size_leaves;
+		let raw_size = n_features*n_entities *std::mem::size_of::<String>();
+		println!("K2tree size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
+		println!("raw size (bytes): {}",raw_size);
+		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
+
+		
+	}
 }

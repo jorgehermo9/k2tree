@@ -16,7 +16,7 @@ pub fn from_file(filename: &str,nodes:usize) -> Matrix<bool>{
     if let Ok(lines) = read_lines(filename) {
         for line in lines {
             if let Ok(line) = line {
-                if !line.starts_with("#"){
+                if !line.starts_with("#") && !line.starts_with("%"){
 					let mut splitted = line.split("\t");
 					let from = splitted.next().unwrap();
 					let to = splitted.next().unwrap();
