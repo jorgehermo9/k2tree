@@ -5,6 +5,11 @@ use std::ops::RangeInclusive;
 
 pub mod iter;
 pub mod display;
+pub mod submatrix;
+
+//Shortcut for submatrix module
+pub use submatrix::Submatrix;
+
 pub struct Matrix<T>{
 	inner:Vec<T>,
 	rows:usize,
@@ -58,25 +63,14 @@ impl <T> Matrix<T>{
 		&mut self.inner
 	}
 	
-	pub fn submatrix(&self,y:RangeInclusive<usize>,x:RangeInclusive<usize>)->Matrix<T> where T:Clone{
+	pub fn submatrix(&self,y:RangeInclusive<usize>,x:RangeInclusive<usize>)->Submatrix<T>{
 		if x.is_empty(){panic!("x range must not be empty")}
 		else if y.is_empty(){panic!("y range must not be empty")}
 
 		if *x.end() > self.columns-1{panic!("x range overflows matrix")}
 		else if *y.end() > self.rows-1{panic!("y range overflows matrix")}
 
-		let mut inner = Vec::new();
-
-		for i in y.clone(){
-			for j in x.clone(){
-				inner.push((self.get(i,j).unwrap()).clone());
-			}
-		}
-		Matrix{
-			inner,
-			rows:x.count(),
-			columns:y.count()
-		}
+		Submatrix::new(self,y,x)
 	}
 	pub fn expand(self,rows:usize,columns:usize)-> Self where T: Default + Clone{
 		//TODO: Implement without cloning
@@ -185,7 +179,7 @@ mod tests {
 
 		let submatrix = matrix.submatrix(0..=1,0..=1);
 
-		let sum = submatrix.into_iter().fold(0, |acc,elem| acc + elem);
+		let sum = submatrix.iter().fold(0, |acc,elem| acc + elem);
 
 		assert_eq!(12,sum);
 	}
@@ -209,5 +203,7 @@ mod tests {
 		}
 		println!("{}",matrix)
 	}
+	
+	
 	
 }

@@ -45,7 +45,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 		while target.len() > 0{
 			let current = target.pop_front().unwrap();
 			let mut ranges = Vec::new();
-			let elem_c = current.get_columns()/self.k;
+			let elem_c = current.get_cols()/self.k;
 			let elem_r = current.get_rows()/self.k;
 			
 			for i in 0..self.k{
@@ -54,8 +54,8 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 				}
 			}
 			for (x,y) in ranges{
-				let submatrix = current.submatrix(x, y);
-				if submatrix.get_inner().len() == 1{
+				let submatrix = current.submatrix(y, x);
+				if submatrix.elems() == 1{
 					self.leaf.push(submatrix.get(0,0).unwrap().clone());
 					continue;
 				}
@@ -131,6 +131,23 @@ mod tests {
 	use crate::matrix::Matrix;
 	use super::K2tree;
 	use rand::Rng;
+
+	#[test]
+	fn test_simple(){
+		let size =4;
+		let mut matrix = Matrix::from_iter(size,size,(0..size*size).
+	map(|_| 0 ));
+		matrix.set(0,1,1);
+		println!("{}", matrix);
+
+		let k2tree =K2tree::new(matrix,2);
+		for i in 0..2{
+			for j in 0..2{
+				println!("{:?}", k2tree.get(i,j));
+			}
+		}
+	}
+
 	#[test]
     fn test_compression() {
 		let size = 512;
@@ -171,7 +188,6 @@ mod tests {
 		let n_features = features.len();
 		let n_entities = entities.len()/n_features;
 		let matrix = Matrix::from_iter(n_entities,n_features,entities.into_iter());
-		
 		let k2tree = K2tree::new(matrix, 2);
 
 		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<String>>();
