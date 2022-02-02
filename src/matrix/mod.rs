@@ -13,12 +13,16 @@ pub use submatrix::Submatrix;
 pub struct Matrix<T>{
 	inner:Vec<T>,
 	rows:usize,
-	columns:usize
+	columns:usize,
+	virtual_rows:usize,
+	virtual_cols:usize,
+	//TODO: default Option<T> so T doesnt have to have default trait
+	default:T
 }
 
 
-impl <T> Matrix<T>{
-	pub fn new(rows:usize,columns:usize) -> Matrix<T> where T:Default{
+impl <T> Matrix<T> where T:Default{
+	pub fn new(rows:usize,columns:usize) -> Matrix<T>{
 		Matrix::from_iter(rows,columns,(0..).map(|_| T::default()))
 	}
 	//if iterator has more elements than needed to fill the matrix, this method wont fail
@@ -31,30 +35,44 @@ impl <T> Matrix<T>{
 				inner
 			},
 			rows,
-			columns
+			columns,
+			virtual_rows:rows,
+			virtual_cols:columns,
+			default:T::default(),
 		}
 	}
 
-	pub fn iter<'a>(&'a self) ->std::slice::Iter<'a,T>{
+	
+	pub fn iter<'a>(&'a self) ->iter::MatrixIterator<T>{
 		self.into_iter()
 	}
+	/*
 	pub fn iter_mut<'a>(&'a mut self) ->std::slice::IterMut<'a,T>{
 		self.into_iter()
 	}
+	 */
+
 	pub fn get(&self,i:usize,j:usize) ->Option<&T>{
-		self.inner.get(i*self.columns+j)
+		if i < self.rows && j < self.columns {
+			return self.inner.get(i*self.columns+j)
+		}else if i < self.virtual_rows && j < self.virtual_cols{
+			return Some(&self.default);
+		}else{
+			return None;
+		}
 	}
+
 	pub fn get_mut(&mut self,i:usize,j:usize) ->&mut T{
 		&mut self.inner[i*self.columns+j]
 	}
 	pub fn set(&mut self,i:usize,j:usize,value:T){
 		self.inner[i*self.columns+j] = value;
 	}
-	pub fn get_columns(&self) -> usize{
-		self.columns
+	pub fn get_cols(&self) -> usize{
+		self.virtual_cols
 	}
 	pub fn get_rows(&self) -> usize{
-		self.rows
+		self.virtual_rows
 	}
 	pub fn get_inner(&self) -> &Vec<T>{
 		&self.inner
@@ -67,45 +85,36 @@ impl <T> Matrix<T>{
 		if x.is_empty(){panic!("x range must not be empty")}
 		else if y.is_empty(){panic!("y range must not be empty")}
 
-		if *x.end() > self.columns-1{panic!("x range overflows matrix")}
-		else if *y.end() > self.rows-1{panic!("y range overflows matrix")}
+		//Virtual cols/rows are only incremented on expand method -> T must have default trait,
+		//therefore, we can use virtual sizes for submatrix.
+
+		if *x.end() > self.virtual_cols-1{panic!("x range overflows matrix")}
+		else if *y.end() > self.virtual_rows-1{panic!("y range overflows matrix")}
 
 		Submatrix::new(self,y,x)
 	}
-	pub fn expand(self,rows:usize,columns:usize)-> Self where T: Default + Clone{
-		//TODO: Implement without cloning
+
+	//This method expands or shrinks matrix 
+	pub fn expand(mut self,rows:usize,columns:usize) -> Self where T: Default{
 		if rows <self.rows || columns <self.columns{
 			panic!("Can't squeeze below current size");
 		};
-		if rows == self.rows && columns == self.columns{
-			return self;
-		}
-		let mut new = Vec::new();
-		for i in 0..rows{
-			for j in 0..columns{
-				if j>= self.columns || i>= self.rows{
-					new.push(T::default());
-				}else{
-					new.push(self.get(i,j).unwrap().clone());
-				}
-			}
-		}
-		Matrix{
-			inner:new,
-			rows,
-			columns
-		}
+		self.virtual_rows = rows;
+		self.virtual_cols = columns;
+		self
 	}
-
 }
 
 
-impl <T> Clone for Matrix<T> where T: Clone{
+impl <T> Clone for Matrix<T> where T: Clone+Default{
 	fn clone(&self) -> Self{
 		return Matrix{
 			inner:self.inner.clone(),
 			rows:self.rows,
-			columns:self.columns
+			columns:self.columns,
+			virtual_rows: self.virtual_rows,
+			virtual_cols: self.virtual_cols,
+			default:self.default.clone(),
 		}
 	}
 }
@@ -125,7 +134,7 @@ mod tests {
 		matrix.set(1,0,3);
 		matrix.set(1,1,4);
 
-		assert_eq!(matrix.get_columns(),2);
+		assert_eq!(matrix.get_cols(),2);
 		assert_eq!(matrix.get_rows(),2);
 
 		for i in 0..2{
@@ -141,7 +150,7 @@ mod tests {
 		let source = vec![1,2,3,4];
 		let matrix = Matrix::from_iter(2,2,source);
 		
-		assert_eq!(matrix.get_columns(),2);
+		assert_eq!(matrix.get_cols(),2);
 		assert_eq!(matrix.get_rows(),2);
 
 		for i in 0..2{
@@ -150,17 +159,18 @@ mod tests {
 			}
 		}
 	}
+	
 	#[test]
 	fn to_iterator_test(){
 		let expected = vec![1,2,3,4];
 		let matrix = Matrix::from_iter(2,2,expected.clone());
 		
-		assert_eq!(matrix.get_columns(),2);
+		assert_eq!(matrix.get_cols(),2);
 		assert_eq!(matrix.get_rows(),2);
 
-		let flat_matrix:Vec<i32> = matrix.into_iter().collect();
+		let flat_matrix:Vec<&i32> = matrix.into_iter().collect();
 
-		assert_eq!(flat_matrix,expected);
+		assert_eq!(flat_matrix,expected.iter().collect::<Vec<&i32>>());
 	}
 
 	#[test]

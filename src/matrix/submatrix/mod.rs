@@ -1,6 +1,7 @@
 use super::Matrix;
 use std::ops::RangeInclusive;
-
+use std::fmt;
+use core::fmt::Display;
 pub struct Submatrix<'a,T>{
 	matrix:&'a Matrix<T>,
 	x:RangeInclusive<usize>,
@@ -12,7 +13,7 @@ pub struct SubmatrixIterator <'a,T>{
 	current_i:usize,
 	current_j:usize,
 }
-impl <'a,T> Iterator for SubmatrixIterator<'a,T>{
+impl <'a,T> Iterator for SubmatrixIterator<'a,T> where T:Default{
 	type Item=&'a T;
 
 	fn next(&mut self) -> Option<&'a T>{
@@ -36,7 +37,7 @@ impl <'a,T> Iterator for SubmatrixIterator<'a,T>{
 		}
 	}
 }
-impl <'a,T> IntoIterator for &'a Submatrix<'a,T>{
+impl <'a,T> IntoIterator for &'a Submatrix<'a,T> where T:Default{
 	type Item = &'a T;
 	type IntoIter = SubmatrixIterator<'a,T>;
 	fn into_iter(self) -> Self::IntoIter{
@@ -47,7 +48,7 @@ impl <'a,T> IntoIterator for &'a Submatrix<'a,T>{
 		}
 	}
 }
-impl <'a,T> Submatrix<'a,T>{
+impl <'a,T> Submatrix<'a,T> where T: Default{
 	pub fn new(matrix:&'a Matrix<T>,y:RangeInclusive<usize>,x:RangeInclusive<usize>)->Self{
 		Self{
 			matrix,
@@ -99,6 +100,19 @@ impl <'a,T> Submatrix<'a,T>{
 		let x_elems = self.x.end() - self.x.start()+1;
 		let y_elems = self.y.end() - self.y.start()+1;
 		return x_elems * y_elems
+	}
+}
+
+impl <'a,T> Display for Submatrix<'a,T> where T:Display+Default {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>)-> fmt::Result {
+		let mut output = String::new();
+		for i in 0..self.get_rows(){
+			for j in 0..self.get_cols()-1{
+				output.push_str(&format!("{:>3} ",self.get(i,j).unwrap()));
+			}
+			output.push_str(&format!("{:>3}\n",self.get(i,self.get_cols()-1).unwrap()));
+		}
+		write!(f,"{}",output)
 	}
 }
 

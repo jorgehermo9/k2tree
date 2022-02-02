@@ -24,7 +24,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 	
 	pub fn new(matrix:Matrix<T>, k:usize) -> K2tree<T> {
 		let rows = matrix.get_rows();
-		let columns = matrix.get_columns();
+		let columns = matrix.get_cols();
 		let size = std::cmp::max(next_pow(k,rows),next_pow(k,columns));
 		let mut tree = K2tree {
 			rows,
@@ -41,7 +41,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 	pub fn build(&mut self,matrix:Matrix<T>){
 		
 		let mut target = VecDeque::new();
-		target.push_back(matrix.submatrix(0..=matrix.get_columns()-1, 0..=matrix.get_rows()-1));
+		target.push_back(matrix.submatrix(0..=matrix.get_cols()-1, 0..=matrix.get_rows()-1));
 		while target.len() > 0{
 			let current = target.pop_front().unwrap();
 			let mut ranges = Vec::new();
@@ -69,11 +69,10 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 				}
 			}
 		}
-		
 	}
 	pub fn get(&self,i:usize,j:usize)-> Option<&T>{
 
-		assert!(i<self.get_rows() && j<self.get_columns(),
+		assert!(i<self.get_rows() && j<self.get_cols(),
 		"position overflows k2tree");
 		
 		let mut l =1;
@@ -121,7 +120,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 	pub fn get_rows(&self)->usize{
 		self.rows
 	}
-	pub fn get_columns(&self) ->usize{
+	pub fn get_cols(&self) ->usize{
 		self.columns
 	}
 }
@@ -171,7 +170,7 @@ mod tests {
 	#[test]
 	fn test_csv(){
 
-		let mut reader = csv::Reader::from_path("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc").unwrap();
+		let mut reader = csv::Reader::from_path("/home/jorge/datasets/connect-4.data").unwrap();
 		let mut features = Vec::new();
 
 		for feature in reader.headers().unwrap(){
