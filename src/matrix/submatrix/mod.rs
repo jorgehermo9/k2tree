@@ -2,6 +2,9 @@ use super::Matrix;
 use std::ops::RangeInclusive;
 use std::fmt;
 use core::fmt::Display;
+
+//TODO: All_eq method for submatrix in default region -> check if index in default
+//region and return true
 pub struct Submatrix<'a,T>{
 	matrix:&'a Matrix<T>,
 	x:RangeInclusive<usize>,
