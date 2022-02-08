@@ -255,7 +255,7 @@ mod tests {
 	fn test_speedup_csv(){
 		// let size = 1024;
 		//let mut matrix:Matrix<i32> = Matrix::new(size,size);
-		let matrix= read_csv("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc");
+		let matrix= read_csv("/home/jorge/datasets/test_nci9_s3.csv");
 		let cols = matrix.get_cols();
 		let rows = matrix.get_rows();
 
