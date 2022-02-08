@@ -5,8 +5,10 @@ use core::fmt::Display;
 
 use crate::matrix::Matrix;
 use crate::sequence::Sequence;
-#[derive(Debug)]
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize,Deserialize,Debug)]
 pub struct K2tree<T> where T:Clone{
 	rows:usize,
 	columns:usize,
@@ -32,7 +34,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 			virtual_rows:size,
 			virtual_cols:size,
 			k,
-			nodes:Sequence::new(Vec::new(),None),
+			nodes:Sequence::new(None),
 			leaf:Vec::new(),
 		};
 		tree.build(matrix.expand(size,size));
@@ -60,8 +62,7 @@ impl <T> K2tree<T> where T:Display + Eq + Clone + Default{
 					continue;
 				}
 				let first = submatrix.get(0,0).unwrap();
-				let all_eq = submatrix.iter().all(|item| item == first);
-				if all_eq{
+				if submatrix.all_eq(){
 					self.nodes.push(Some(first.clone()));
 				}else{
 					self.nodes.push(None);
@@ -130,23 +131,170 @@ mod tests {
 	use crate::matrix::Matrix;
 	use super::K2tree;
 	use rand::Rng;
+	use std::time::Instant;
+	use std::io::prelude::*;
+
 
 	#[test]
 	fn test_simple(){
-		let size =4;
+		let size =9;
 		let mut matrix = Matrix::from_iter(size,size,(0..size*size).
 	map(|_| 0 ));
 		matrix.set(0,1,1);
+		matrix.set(2,2,1);
+		matrix.set(3,0,1);
+
 		println!("{}", matrix);
 
 		let k2tree =K2tree::new(matrix,2);
-		for i in 0..2{
-			for j in 0..2{
-				println!("{:?}", k2tree.get(i,j));
+		for i in 0..size{
+			for j in 0..size{
+				print!("{} ", k2tree.get(i,j).unwrap());
 			}
+			println!("");
 		}
+		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<usize>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
+		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<usize>();
+		let size_static = std::mem::size_of::<K2tree<usize>>();
+		let total_size = size_static+size_nodes+size_leaves;
+		let raw_size = size*size *std::mem::size_of::<usize>();
+		println!("K2tree size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
+		println!("raw size (bytes): {}",raw_size);
+		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
+	}
+	
+	#[test]
+	fn test_serde(){
+		
+		/* 
+		let size =16;
+		let mut matrix:Matrix<usize> = Matrix::new(size,size);
+
+		for i in 0..size{
+			matrix.set(i,0,1);
+		}
+		matrix.set(5,5,1);
+		matrix.set(7,7,1);
+		matrix.set(3,3,1);
+		matrix.set(0,7,1);
+		matrix.set(12,7,1);
+		matrix.set(7,12,1);
+		*/
+		let matrix= read_csv("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc");
+
+		let k2tree = K2tree::new(matrix.clone(), 2);
+		
+		let serialized = serde_json::to_string(&k2tree).unwrap();
+		let path = "k2tree.json";
+		let mut file  = std::fs::File::create(path).unwrap();
+		file.write_all(serialized.as_bytes()).expect("unable to write");
+
+		let mut file = std::fs::File::open(path).expect("unable to open file");
+		let mut content = String::new();
+		file.read_to_string(&mut content).expect("unable to read");
+
+		let k2tree:K2tree<String> = serde_json::from_str(&content).unwrap();
+		println!("{:?}",k2tree);
+
 	}
 
+	#[test]
+	fn test_speedup_simple(){
+		let size =16;
+		let mut matrix:Matrix<usize> = Matrix::new(size,size);
+
+		for i in 0..size{
+			matrix.set(i,0,1);
+		}
+		matrix.set(5,5,1);
+		matrix.set(7,7,1);
+		matrix.set(3,3,1);
+		matrix.set(0,7,1);
+		matrix.set(12,7,1);
+		matrix.set(7,12,1);
+
+		
+
+		// println!("{}",matrix);
+		let start = Instant::now();
+		let k2tree = K2tree::new(matrix.clone(), 2);
+		let tree_building = start.elapsed();
+		let start = Instant::now();
+		for i in 0..size{
+			for j in 0..size{
+				matrix.get(i,j);
+			}
+		}
+		let matrix_time = start.elapsed();
+
+		let start = Instant::now();
+		for i in 0..size{
+			for j in 0..size{
+				k2tree.get(i,j);
+			}
+		}
+		let k2tree_time = start.elapsed();
+		
+		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<usize>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
+		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<usize>();
+		let size_static = std::mem::size_of::<K2tree<usize>>();
+		let total_size = size_static+size_nodes+size_leaves;
+		let raw_size = size*size *std::mem::size_of::<usize>();
+		println!("* K2tree building time: {:?}",tree_building);
+		println!("* Matrix access time: {:?}",matrix_time);
+		println!("* K2tree access time: {:?}",k2tree_time);
+		println!("* access time speedup {}",matrix_time.as_nanos() as f64/k2tree_time.as_nanos() as f64);
+		println!("* Compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
+
+	
+	}
+
+	#[test]
+	fn test_speedup_csv(){
+		// let size = 1024;
+		//let mut matrix:Matrix<i32> = Matrix::new(size,size);
+		let matrix= read_csv("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc");
+		let cols = matrix.get_cols();
+		let rows = matrix.get_rows();
+
+		let start = Instant::now();
+		let k2tree = K2tree::new(matrix.clone(), 2);
+		let tree_building = start.elapsed();
+
+		let start = Instant::now();
+		for i in 0..rows{
+			for j in 0..cols{
+				matrix.get(i,j);
+			}
+		}
+		let matrix_time = start.elapsed();
+
+		let start = Instant::now();
+		for i in 0..rows{
+			for j in 0..cols{
+				k2tree.get(i,j);
+			}
+		}
+		let k2tree_time = start.elapsed();
+		
+
+
+		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<usize>>();
+		size_nodes+=k2tree.get_nodes().get_target_index().len() * std::mem::size_of::<usize>();
+		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<usize>();
+		let size_static = std::mem::size_of::<K2tree<usize>>();
+		let total_size = size_static+size_nodes+size_leaves;
+		let raw_size = rows*cols *std::mem::size_of::<usize>();
+		println!("* K2tree building time: {:?}",tree_building);
+		println!("* Matrix access time: {:?}",matrix_time);
+		println!("* K2tree access time: {:?}",k2tree_time);
+		println!("* access time speedup {}",matrix_time.as_nanos() as f64/k2tree_time.as_nanos() as f64);
+		println!("* Compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
+
+	
+	}
 	#[test]
     fn test_compression() {
 		let size = 512;
@@ -167,10 +315,8 @@ mod tests {
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);
 	}
 
-	#[test]
-	fn test_csv(){
-
-		let mut reader = csv::Reader::from_path("/home/jorge/datasets/connect-4.data").unwrap();
+	fn read_csv(filename: &str)->Matrix<String>{
+		let mut reader = csv::Reader::from_path(filename).unwrap();
 		let mut features = Vec::new();
 
 		for feature in reader.headers().unwrap(){
@@ -186,7 +332,12 @@ mod tests {
 		}
 		let n_features = features.len();
 		let n_entities = entities.len()/n_features;
-		let matrix = Matrix::from_iter(n_entities,n_features,entities.into_iter());
+		Matrix::from_iter(n_entities,n_features,entities.into_iter())
+	}
+	#[test]
+	fn test_csv(){
+
+		let matrix = read_csv("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc");
 		let k2tree = K2tree::new(matrix, 2);
 
 		let mut size_nodes = k2tree.get_nodes().get_data().len() * std::mem::size_of::<Option<String>>();
@@ -194,7 +345,7 @@ mod tests {
 		let size_leaves = k2tree.get_leaf().len() * std::mem::size_of::<String>();
 		let size_static = std::mem::size_of::<K2tree<String>>();
 		let total_size = size_static+size_nodes+size_leaves;
-		let raw_size = n_features*n_entities *std::mem::size_of::<String>();
+		let raw_size = k2tree.get_cols()*k2tree.get_rows() *std::mem::size_of::<String>();
 		println!("K2tree size (bytes) {{static:{}, nodes: {}, leaves: {}}}: {}",size_static,size_nodes,size_leaves,total_size);
 		println!("raw size (bytes): {}",raw_size);
 		println!("compression rate: {}%", (1.0 - (total_size as f64/raw_size as f64)) * 100.0);

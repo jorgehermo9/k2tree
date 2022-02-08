@@ -104,6 +104,20 @@ impl <'a,T> Submatrix<'a,T> where T: Default{
 		let y_elems = self.y.end() - self.y.start()+1;
 		return x_elems * y_elems
 	}
+	pub fn all_eq(&self)->bool where T:Eq{
+		//If all elements are default
+		if *self.x.start()>=self.matrix.get_orig_cols() && *self.y.start()>=self.matrix.get_orig_rows(){
+			return true;
+		}
+		let first = self.matrix.get(*self.x.start(),*self.y.start()).unwrap();
+		let mut acc = true;
+		for i in self.x.clone(){
+			for j in self.y.clone(){
+				acc &= *first == *self.matrix.get(i,j).unwrap();
+			}
+		}
+		return acc;
+	}
 }
 
 impl <'a,T> Display for Submatrix<'a,T> where T:Display+Default {

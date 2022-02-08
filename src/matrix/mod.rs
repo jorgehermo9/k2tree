@@ -68,6 +68,12 @@ impl <T> Matrix<T> where T:Default{
 	pub fn set(&mut self,i:usize,j:usize,value:T){
 		self.inner[i*self.columns+j] = value;
 	}
+	pub fn get_orig_cols(&self) ->usize{
+		self.columns
+	}
+	pub fn get_orig_rows(&self) ->usize{
+		self.rows
+	}
 	pub fn get_cols(&self) -> usize{
 		self.virtual_cols
 	}
@@ -212,6 +218,7 @@ mod tests {
 			println!("{}", element)
 		}
 		println!("{}",matrix)
+
 	}
 	
 	
