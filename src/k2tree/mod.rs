@@ -201,7 +201,7 @@ mod tests {
 
 	#[test]
 	fn test_speedup_simple(){
-		let size =16;
+		let size =1024;
 		let mut matrix:Matrix<usize> = Matrix::new(size,size);
 
 		for i in 0..size{
@@ -255,7 +255,7 @@ mod tests {
 	fn test_speedup_csv(){
 		// let size = 1024;
 		//let mut matrix:Matrix<i32> = Matrix::new(size,size);
-		let matrix= read_csv("/home/jorge/datasets/test_nci9_s3.csv");
+		let matrix= read_csv("/home/jorge/datasets/staDynVxHeaven2698Lab.csv.disc");
 		let cols = matrix.get_cols();
 		let rows = matrix.get_rows();
 
